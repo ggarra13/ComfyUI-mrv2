@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-mrv2"
+description = "NODES:mrv2 Save EXR Image, mrv2 Annotations Image Node"
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["openexr", "pillow"]
+
+[project.urls]
+Repository = "https://github.com/ggarra13/ComfyUI-mrv2"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI-mrv2"
+Icon = ""
