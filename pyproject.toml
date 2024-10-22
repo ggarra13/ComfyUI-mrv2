@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-mrv2"
-description = "NODES:mrv2 Save EXR Image, mrv2 Annotations Image Node"
-version = "1.0.0"
+description = "Nodes to interact with the mrv2 player"
+version = "1.0.1"
 license = {file = "LICENSE"}
 dependencies = ["openexr", "pillow"]
 

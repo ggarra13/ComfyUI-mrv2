@@ -23,12 +23,15 @@ def _draw_circle(draw, center, radius, width, fill_color, outline_color):
         width=width
     )
     
+mrv2_base_path = os.path.dirname(os.path.realpath(__file__))
+mrv2_json_directory = os.path.join(mrv2_base_path, "..", "json_files")
+mrv2_json_directory = os.path.realpath(mrv2_json_directory)
+
 class mrv2AnnotationsImageNode:
     @classmethod
     def INPUT_TYPES(s):
-        input_directory = folder_paths.get_input_directory()
-        files = [f for f in os.listdir(input_directory) \
-                 if os.path.isfile(os.path.join(input_directory, f))]
+        files = [f for f in os.listdir(mrv2_json_directory) \
+                 if os.path.isfile(os.path.join(mrv2_json_directory, f))]
         return {"required":
                 { "annotations": (sorted(files), {"image_upload": True})},
                 }
@@ -44,8 +47,9 @@ class mrv2AnnotationsImageNode:
 
     @classmethod
     def VALIDATE_INPUTS(s, annotations):
-        if not folder_paths.exists_annotated_filepath(annotations):
-            return "Invalid image file: {}".format(annotations)
+        annotations_path = os.path.join(mrv2_json_directory, annotations)
+        if not os.path.exists(annotations_path):
+            return "Invalid annotations file: {}".format(annotations)
 
         return True
     
@@ -54,8 +58,7 @@ class mrv2AnnotationsImageNode:
         return time.time()
     
     def create_mask(self, annotations):
-        input_directory = folder_paths.get_input_directory()
-        annotations_path = os.path.join(input_directory, annotations)
+        annotations_path = os.path.join(mrv2_json_directory, annotations)
 
         logging.debug(f"Reading annotation {annotations_path}")
         # Load the JSON file
@@ -74,14 +77,22 @@ class mrv2AnnotationsImageNode:
         high_res_height = image_height * scale_factor
         
         # Create a high-resolution black image
-        image = Image.new('L', (high_res_width, high_res_height), 0)
-        draw = ImageDraw.Draw(image)
+        mask = Image.new('L', (high_res_width, high_res_height), 0)
+        image = Image.new('RGB', (high_res_width, high_res_height), 0)
+        
+        draw_mask = ImageDraw.Draw(image)
+        draw_image = ImageDraw.Draw(image)
 
         # Process the paths from the JSON
         for annotation in data['annotations']:
             for shape in annotation['shapes']:
                 shape_type = shape['type']
                 pen_size = int(shape.get('pen_size', 1.0) * scale_factor)
+                float_color  = shape['color']
+                
+                # Convert float values to integer values in the range 0-255
+                color = tuple([int(x * 255) for x in float_color])
+
                 points = None
                 if shape.get('pts', None):
                     points = [(point['x'], image_height - point['y'])
@@ -92,17 +103,22 @@ class mrv2AnnotationsImageNode:
             
                 if shape_type == 'DrawPath' or shape_type == 'Rectangle':
                     # Draw the path (white color, width defined by 'pen_size')
-                    draw.line(points, fill=255, width=int(pen_size))
+                    draw_mask.line(points, fill=255, width=int(pen_size))
+                    draw_image.line(points, fill=color, width=int(pen_size))
                 elif shape_type == 'ErasePath':
                     # Draw the path (white color, width defined by 'pen_size')
-                    draw.line(points, fill=0, width=int(pen_size * 1.25))
+                    draw_mask.line(points, fill=0, width=int(pen_size * 1.25))
+                    draw_image.line(points, fill=0, width=int(pen_size * 1.25))
                 elif shape_type == 'Arrow':
                     left_side = [points[1], points[2]]
-                    draw.line(left_side, fill=255, width=int(pen_size))
+                    draw_mask.line(left_side, fill=255, width=int(pen_size))
+                    draw_image.line(left_side, fill=255, width=int(pen_size))
                     right_side = [points[1], points[4]]
-                    draw.line(right_side, fill=255, width=int(pen_size))
+                    draw_mask.line(right_side, fill=255, width=int(pen_size))
+                    draw_image.line(right_side, fill=255, width=int(pen_size))
                     root = [points[0], points[1]]
-                    draw.line(root, fill=255, width=int(pen_size))
+                    draw_mask.line(root, fill=255, width=int(pen_size))
+                    draw_image.line(root, fill=255, width=int(pen_size))
                 elif shape_type == 'GL2Text' or shape_type == "Text":
                     continue
                 elif shape_type == 'Circle' or shape_type == 'FilledCircle':
@@ -114,29 +130,44 @@ class mrv2AnnotationsImageNode:
                     center = _scale_points([center], scale_factor, scale_factor)[0]
             
                     # Draw the circle with the specified stroke width
-                    fill_color = None
-                    outline_color = 255
+                    mask_fill_color = None
+                    mask_outline_color = 255
+                    image_fill_color = None
+                    image_outline_color = color
                     if shape_type == 'FilledCircle':
                         fill_color = 255
                         outline_color = None
-                    _draw_circle(draw, center, radius, pen_size, fill_color, outline_color)
+                        image_fill_color = color
+                        image_outline_color = None
+                    _draw_circle(draw_mask, center, radius, pen_size,
+                                 mask_fill_color, mask_outline_color)
+                    _draw_circle(draw_image, center, radius, pen_size,
+                                 image_fill_color, image_outline_color)
                 elif shape_type == 'Rectangle' or shape_type == 'FilledRectangle':
                     box = [(points[0][0], points[0][1]), (points[2][0], points[2][1])]
                     if shape_type == 'Rectangle':
-                        draw.rectangle(box, fill=None, outline=255)
+                        draw_mask.rectangle(box, fill=None, outline=255)
                     else:
-                        draw.rectangle(box, fill=255, outline=None)
+                        draw_mask.rectangle(box, fill=255, outline=None)
+                        
+                    if shape_type == 'Rectangle':
+                        draw_image.rectangle(box, fill=None, outline=color)
+                    else:
+                        draw_image.rectangle(box, fill=color, outline=None)
                 elif shape_type == 'Polygon':
-                    draw.polygon(points, fill=None, outline=255)
+                    draw_mask.polygon(points, fill=None, outline=255)
+                    draw_imaeg.polygon(points, fill=None, outline=color)
                 elif shape_type == 'FilledPolygon':
-                    draw.polygon(points, fill=255, outline=None)
+                    draw_mask.polygon(points, fill=255, outline=None)
+                    draw_image.polygon(points, fill=color, outline=None)
                 else:
                     logging.error(f"Unknown shape type {shape_type}")
                     
         # Downscale to the target resolution
-        mask = image.resize((image_width, image_height),
+        mask = mask.resize((image_width, image_height),
                             Image.Resampling.LANCZOS)
-        image = mask.convert('RGB')
+        image = image.resize((image_width, image_height),
+                             Image.Resampling.LANCZOS)
         
         # Convert the PIL mask to a NumPy array
         mask = np.array(mask).astype(np.float32) / 255.0
