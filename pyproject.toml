@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-mrv2"
 description = "Nodes to interact with the mrv2 player"
-version = "1.0.1"
+version = "1.0.2"
 license = {file = "LICENSE"}
 dependencies = ["openexr", "pillow"]
 

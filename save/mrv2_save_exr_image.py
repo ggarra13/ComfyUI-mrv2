@@ -93,6 +93,7 @@ class mrv2SaveEXRImage:
                                            "step": 0.1
                                            }
                                           ),
+                         "show" : ("BOOLEAN", {"default": False}),
                     },
                 "optional":
                 {
@@ -107,14 +108,11 @@ class mrv2SaveEXRImage:
 
     CATEGORY = "mrv2/save"
 
-    @classmethod
-    def IS_CHANGED(s, images):
-        return time.time()
-    
     def save_images(self, images, masks = [],
                     filename_prefix="mrv2",
                     exr_type = 'half',
-                    pixel_aspect = 1.0):
+                    pixel_aspect = 1.0,
+                    show = False):
         
         filename_path = folder_paths.get_save_image_path(filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0])
         
@@ -198,11 +196,12 @@ class mrv2SaveEXRImage:
             
             counter += 1
 
-        try:
+        if show:
+          try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect(('localhost', self.kMRV2_PORT))
-                s.sendall(fullpath.encode())
-        except ConnectionRefusedError:
+              s.connect(('localhost', self.kMRV2_PORT))
+              s.sendall(fullpath.encode())
+          except ConnectionRefusedError:
             # No mrv2 with pipe running.  Start an instance of mrv2.
             
             # Get the name of the mrv2 executable.
