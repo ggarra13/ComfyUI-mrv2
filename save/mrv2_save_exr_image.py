@@ -117,7 +117,6 @@ class mrv2SaveEXRImage:
         filename_path = folder_paths.get_save_image_path(filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0])
         
         full_output_folder, filename, counter, subfolder, filename_prefix = filename_path
-        results = list()
 
         mrv2_pattern = f"{filename}_*.exr"
         mrv2_pattern = os.path.join(full_output_folder, mrv2_pattern)
@@ -131,6 +130,7 @@ class mrv2SaveEXRImage:
         mrv2_fullpath = None
         pbar = ProgressBar(num_images)
         
+        results = list()
         for (batch_number, image) in enumerate(images):
             pbar.update(1)
                 
@@ -210,7 +210,13 @@ class mrv2SaveEXRImage:
             # Start mrv2 with the fullpath to the sequence.
             mrv2_process(exe, fullpath)
 
-        return { }
+        results.append({
+          "filename": fullpath,
+          "subfolder": subfolder,
+          "type": 'output',
+        })
+            
+        return { "ui": { "images": results } }
 
     
 # NOTE: names should be globally unique
