@@ -189,6 +189,12 @@ class mrv2SaveEXRImage:
 
             file = f"{filename}_{counter:05}.exr"
             fullpath = os.path.join(full_output_folder, file)
+            
+            results.append({
+              "filename": fullpath,
+              "subfolder": subfolder,
+              "type": 'output',
+            })
 
             exr_out = OpenEXR.OutputFile(fullpath, header)
             exr_out.writePixels(channel_map)
@@ -210,11 +216,6 @@ class mrv2SaveEXRImage:
             # Start mrv2 with the fullpath to the sequence.
             mrv2_process(exe, fullpath)
 
-        results.append({
-          "filename": fullpath,
-          "subfolder": subfolder,
-          "type": 'output',
-        })
             
         return { "ui": { "images": results } }
 
