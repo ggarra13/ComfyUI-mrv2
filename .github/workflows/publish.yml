@@ -7,9 +7,6 @@ on:
     paths:
       - "pyproject.toml"
 
-permissions:
-  issues: write
-
 jobs:
   # auto issue permission, for Comfy CustomNode registry publishing state
   permissions:
