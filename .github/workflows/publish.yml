@@ -7,10 +7,10 @@ on:
     paths:
       - "pyproject.toml"
 
+permissions:
+  issues: write
+
 jobs:
-  # auto issue permission, for Comfy CustomNode registry publishing state
-  permissions:
-    issues: write
   publish-node:
     name: Publish Custom Node to registry
     runs-on: ubuntu-latest
